@@ -133,17 +133,6 @@ def main():
                              loop = printFileList(fileSaveName, encoding, _prefix, allFiles, b64, nb64)
                              if loop:
                                  continue
-#                            if encoding == "base64" and (b64 or allFiles):
-#                                print(_prefix, end="  ")
-#                                print(fileSaveName, end="  ")
-#                                print("--  ", end="")
-#                                print(encoding, end="")
-#                            elif not encoding and (nb64 or allFiles):
-#                                print(_prefix, end="  ")
-#                                print(fileSaveName, end="  ")
-#                            else:
-#                                continue
-#                            print()
                         _prefix+=1
 
                         if not listFiles:
