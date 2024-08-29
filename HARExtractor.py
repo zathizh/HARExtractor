@@ -17,7 +17,7 @@ def getOrgFileName(url):
 def getFileName(name, ext):
     return name + "." + ext
 
-
+# generate the save name
 def genSaveName(name, ext, counter, keep):
     global _FMT
     fmt = _FMT.format(counter)
@@ -43,17 +43,30 @@ def getFileExtension(mimeType):
     return mimeType.split("/")[1]
 
 
-# select file types
-def getTypes():
-    pass
-
-
+#check if HAR file exists
 def checkHARFileExists(fileName):
     if not os.path.isfile(fileName):
         print("[-] ERROR : Could Not Find the " + fileName)
         exit(1)
 
 
+# prints the verbose output
+def printFileList(fileSaveName, encoding, _prefix, allFiles, b64, nb64):
+    if encoding == "base64" and (b64 or allFiles):
+        print(_prefix, end="  ")
+        print(fileSaveName, end="  ")
+        print("--  ", end="")
+        print(encoding, end="")
+    elif not encoding and (nb64 or allFiles):
+        print(_prefix, end="  ")
+        print(fileSaveName, end="  ")
+    else:
+        return True
+    print()
+    return False
+
+
+#handle command line arguments
 def argsHandler():
     parser = argparse.ArgumentParser(prog="HARExtractor")
     parser.add_argument("-f", "--file", dest="file", action="store", type=str, required=True, help="file name")
@@ -74,20 +87,14 @@ def argsHandler():
     args = parser.parse_args()
     return args
 
+
+# the main function 
 def main():
     args = argsHandler()
 
-    fileName = args.file
-    outPath = args.out
-    fileType = args.type
-    selection = args.select
-    listFiles = args.list
-    keep = args.keep
-    _prefix = args.prefix
+    fileName, outPath, fileType, selection, listFiles, keep, _prefix = args.file, args.out, args.type, args.select, args.list, args.keep, args.prefix
 
-    allFiles = args.all
-    b64 = args.b64
-    nb64 = args.nb64
+    allFiles, b64, nb64 = args.all, args.b64, args.nb64
 
     checkHARFileExists(fileName)
 
@@ -95,9 +102,6 @@ def main():
         har = json.load(harFile)
         entries = har["log"]["entries"]
         for entry in entries:
-#            request = ""
-#            response = ""
-#            startedDateTime = ""
             if "request" in entry:
                 request = entry["request"]
                 if "url" in request:
@@ -106,10 +110,8 @@ def main():
                 response = entry["response"]
                 if "content" in response:
                     content = response["content"]
-                    size = ""
-                    mimeType = ""
-                    text = ""
-                    encoding = ""
+
+                    size = mimeType = text = encoding = ""
 
                     if "size" in content:
                         size = content["size"]
@@ -145,23 +147,7 @@ def main():
                                 with open(path + fileSaveName, "w") as saveFile :
                                     saveFile.write(text)
 
-#            if "startedDateTime" in entry:
-#                startedDateTime = entry["startedDateTime"]
 
-def printFileList(fileSaveName, encoding, _prefix, allFiles, b64, nb64):
-    if encoding == "base64" and (b64 or allFiles):
-        print(_prefix, end="  ")
-        print(fileSaveName, end="  ")
-        print("--  ", end="")
-        print(encoding, end="")
-    elif not encoding and (nb64 or allFiles):
-        print(_prefix, end="  ")
-        print(fileSaveName, end="  ")
-    else:
-        return True
-    print()
-    return False
-
-
+# calling main function
 if __name__ ==  '__main__':
     main()
