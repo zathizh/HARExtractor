@@ -51,16 +51,19 @@ def checkHARFileExists(fileName):
 
 
 # prints the verbose output
-def printFileList(fileSaveName, encoding, _prefix, allFiles, b64, nb64):
-    if encoding == "base64" and (b64 or allFiles):
+def printFileList(fileSaveName, encoding, _prefix, allFiles, b64, nb64, fTypes, extension):
+    if fTypes and extension in fTypes:
+        print(_prefix, end="  ")
+        print(fileSaveName, end="  ")
+    elif encoding == "base64" and (b64 or allFiles) :
         print(_prefix, end="  ")
         print(fileSaveName, end="  ")
         print("--  ", end="")
         print(encoding, end="")
-    elif not encoding and (nb64 or allFiles):
+    elif not encoding and (nb64 or allFiles) :
         print(_prefix, end="  ")
         print(fileSaveName, end="  ")
-    else:
+    else :
         return True
     print()
     return False
@@ -71,7 +74,6 @@ def argsHandler():
     parser = argparse.ArgumentParser(prog="HARExtractor")
     parser.add_argument("-f", "--file", dest="file", action="store", type=str, required=True, help="file name")
     parser.add_argument("-o", "--out", dest="out", action="store", type=str, default="out", required=False, help="output directory")
-    parser.add_argument("-t", "--type", dest="type", action="store", type=str, required=False, help="file type")
     parser.add_argument("-s", "--select", dest="select", action="store", type=str, required=False, help="select by file name")
     parser.add_argument("-c", "--prefix", dest="prefix", action="store", type=int, default=1, required=False, help="Prefix")
     parser.add_argument("-k", "--keep", dest="keep", action="store_true", required=False, help="keep original file name")
@@ -81,10 +83,13 @@ def argsHandler():
     group.add_argument("-a", "--all", dest="all", action="store_true", default=False, required=False, help="extract all")
     group.add_argument("-b", "--b64", dest="b64", action="store_true", default=False, required=False, help="base64 files only")
     group.add_argument("-n", "--nb64", dest="nb64", action="store_true", default=False, required=False, help="non-base64 files only")
+    group.add_argument("-t", "--type", dest="type", action="store", default=False, required=False, nargs='+', help="file type")
 
     parser.add_argument("-v", "--version", action="version", version='%(prog)s 2.0')
 
     args = parser.parse_args()
+    print (args)
+    #exit(1)
     return args
 
 
@@ -92,9 +97,9 @@ def argsHandler():
 def main():
     args = argsHandler()
 
-    fileName, outPath, fileType, selection, listFiles, keep, _prefix = args.file, args.out, args.type, args.select, args.list, args.keep, args.prefix
+    fileName, outPath, selection, listFiles, keep, _prefix = args.file, args.out, args.select, args.list, args.keep, args.prefix
 
-    allFiles, b64, nb64 = args.all, args.b64, args.nb64
+    allFiles, b64, nb64, fTypes = args.all, args.b64, args.nb64, args.type
 
     checkHARFileExists(fileName)
 
@@ -131,21 +136,33 @@ def main():
                         if selection and selection != orgFileName:
                             continue
 
+                        # verbose print
                         if listFiles:
-                             loop = printFileList(fileSaveName, encoding, _prefix, allFiles, b64, nb64)
+                             loop = printFileList(fileSaveName, encoding, _prefix, allFiles, b64, nb64, fTypes, extension)
                              if loop:
                                  continue
-                        _prefix+=1
+                             _prefix+=1
 
+                        # extract files
                         if not listFiles:
                             path = setFilePath(outPath)
 
-                            if encoding == "base64" and (b64 or allFiles ) :
+                            if fTypes and extension in fTypes :
+                                if encoding == "base64":
+                                    with open(path + fileSaveName, "wb") as saveFile :
+                                        saveFile.write(base64.decodebytes(text.encode()))
+                                else:
+                                    with open(path + fileSaveName, "w") as saveFile :
+                                        saveFile.write(text)
+                                _prefix+=1
+                            elif encoding == "base64" and ( b64 or allFiles ) :
                                 with open(path + fileSaveName, "wb") as saveFile :
                                     saveFile.write(base64.decodebytes(text.encode()))
+                                _prefix+=1
                             elif not encoding and ( nb64 or allFiles ) :
                                 with open(path + fileSaveName, "w") as saveFile :
                                     saveFile.write(text)
+                                _prefix+=1
 
 
 # calling main function
