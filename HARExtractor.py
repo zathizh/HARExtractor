@@ -17,6 +17,7 @@ def getOrgFileName(url):
 def getFileName(name, ext):
     return name + "." + ext
 
+
 # generate the save name
 def genSaveName(name, ext, counter, keep):
     global _FMT
@@ -33,8 +34,14 @@ def createFilePath(path):
 
 # generate file path
 def setFilePath(path):
-    path = os.path.join(path, '') 
+    path = getFilePath(path)
     createFilePath(path)
+    return path
+
+
+# get file path
+def getFilePath(path):
+    path = os.path.join(path, '') 
     return path
 
 
@@ -69,6 +76,32 @@ def printFileList(fileSaveName, encoding, _prefix, allFiles, b64, nb64, fTypes, 
     return False
 
 
+def writeBase64File(path, fileSaveName, text, mode):
+    with open(path + fileSaveName, mode) as saveFile :
+        saveFile.write(base64.decodebytes(text.encode()))
+
+
+def writeTextFile(path, fileSaveName, text, mode):
+    with open(path + fileSaveName, mode) as saveFile :
+        saveFile.write(text)
+
+
+def extractFiles(listFiles, path, fileSaveName, encoding, extension, text, allFiles, b64, nb64, fTypes, prefix):
+    if fTypes and extension in fTypes :
+        if encoding == "base64":
+            writeBase64File(path, fileSaveName, text, 'wb')
+        else:
+            writeTextFile(path, fileSaveName, text, 'w')
+        prefix+=1
+    elif encoding == "base64" and ( b64 or allFiles ) :
+        writeBase64File(path, fileSaveName, text, 'wb')
+        prefix+=1
+    elif not encoding and ( nb64 or allFiles ) :
+        writeTextFile(path, fileSaveName, text, 'w')
+        prefix+=1
+    return prefix
+
+
 #handle command line arguments
 def argsHandler():
     parser = argparse.ArgumentParser(prog="HARExtractor")
@@ -94,12 +127,14 @@ def argsHandler():
 # the main function 
 def main():
     args = argsHandler()
-
     fileName, outPath, selection, listFiles, keep, _prefix = args.file, args.out, args.select, args.list, args.keep, args.prefix
-
     allFiles, b64, nb64, fTypes = args.all, args.b64, args.nb64, args.type
 
     checkHARFileExists(fileName)
+    if listFiles:
+        path = getFilePath(outPath)
+    else:
+        path = setFilePath(outPath)
 
     with open(fileName, "rb") as harFile:
         har = json.load(harFile)
@@ -125,12 +160,15 @@ def main():
                     if "encoding" in content :
                         encoding = content["encoding"]
 
+                    ## COMMENT TO INCLUDE EMPTY FILES
+                    # ignore empty files
                     if size != "" and size != 0 :
                         extension = getFileExtension(mimeType)
 
                         orgFileName = getOrgFileName(url)
                         fileSaveName = genSaveName(orgFileName, extension, _prefix, keep)
 
+                        # filtering files based on the file name
                         if selection and selection != orgFileName:
                             continue
 
@@ -143,26 +181,10 @@ def main():
 
                         # extract files
                         if not listFiles:
-                            path = setFilePath(outPath)
-
-                            if fTypes and extension in fTypes :
-                                if encoding == "base64":
-                                    with open(path + fileSaveName, "wb") as saveFile :
-                                        saveFile.write(base64.decodebytes(text.encode()))
-                                else:
-                                    with open(path + fileSaveName, "w") as saveFile :
-                                        saveFile.write(text)
-                                _prefix+=1
-                            elif encoding == "base64" and ( b64 or allFiles ) :
-                                with open(path + fileSaveName, "wb") as saveFile :
-                                    saveFile.write(base64.decodebytes(text.encode()))
-                                _prefix+=1
-                            elif not encoding and ( nb64 or allFiles ) :
-                                with open(path + fileSaveName, "w") as saveFile :
-                                    saveFile.write(text)
-                                _prefix+=1
+                            _prefix = extractFiles(listFiles, path, fileSaveName, encoding, extension, text, allFiles, b64, nb64, fTypes, _prefix)
 
 
 # calling main function
 if __name__ ==  '__main__':
     main()
+
